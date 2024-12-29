@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: federguarddb
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "/usr/bin/mysql", "--user=root", "--password=root", "--execute", "SHOW DATABASES;"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+    volumes:
+      - mysql-data:/var/lib/mysql  # Ajout d'un volume pour persister les données
+
+  backend:
+    build:
+      context: ./federguard
+      dockerfile: Dockerfile
+    container_name: backend-container
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/federguarddb?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD:   # Ajout d'un mot de passe (modifiez-le si nécessaire)
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: true
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: true
+      KNF_APP_JWT_EXPIRATION_MS: 76300000
+      KNF_APP_JWT_SECRET: knowledgeFactory
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8081:80"
+    depends_on:
+      - mysql
+
+volumes:
+  mysql-data:
